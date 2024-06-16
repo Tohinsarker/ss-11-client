@@ -4,6 +4,7 @@ import { useContext, useEffect } from "react";
 import { AuthContext } from "../provider/AuthProvider";
 import toast from "react-hot-toast";
 import axios from "axios";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 // VITE_API_URL='http://localhost:5000'
 const Login = () => {
   const {
@@ -22,10 +23,11 @@ const Login = () => {
       navigate("/");
     }
   }, [navigate, user]);
+  const axiosSecure = useAxiosSecure();
   const handleGoogleSignUp = async () => {
     try {
       const result = await signInWithGoogle();
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+      const { data } = await axiosSecure.post(`/jwt`, {
         email: result?.user?.email,
       },
     {
