@@ -1,32 +1,52 @@
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../provider/AuthProvider";
-import axios from "axios";
+import { useState } from "react";
+
 import toast from "react-hot-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import useAuth from "../hooks/useAuth";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const BidRequests = () => {
-  const { user } = useContext(AuthContext);
-  const [bidreques, setBidRequest] = useState([]);
+  const { user } = useAuth();
+  const axiosSecure = useAxiosSecure();
 
-  useEffect(() => {
-    getData();
-  }, [user]);
+  const queryClient = useQueryClient();
 
+  const {
+    data: bids = [],
+    isLoading,
+    refetch,
+
+  } = useQuery({
+    queryFn: () => getData(),
+    queryKey: ["bids", user?.email],
+  });
+
+  console.log("data", bids);
   const getData = async () => {
-    const { data } = await axios(
-      `${import.meta.env.VITE_API_URL}/bid-request/${user?.email}`
-    );
-    setBidRequest(data);
+    const { data } = await axiosSecure(`/bid-request/${user?.email}`);
+
+    return data;
   };
 
+  const { mutateAsync } = useMutation({
+    mutationFn: async ({ id, status }) => {
+      const { data } = await axiosSecure.patch(`/bid/${id}`, { status });
+      console.log(data);
+    },
+    onSuccess: () => {
+
+      toast.success("updated");
+      queryClient.invalidateQueries({ queryKey: ["bids"] });
+      // refetch(); 
+    },
+  });
   const handleStatus = async (id, preStatus, status) => {
-    if(preStatus=== status) return toast.error('all ready done');
-    const { data } = await axios.patch(
-      `${import.meta.env.VITE_API_URL}/bid/${id}`,
-      {status}
-    );
-    console.log(data);
-    getData()
+    if (preStatus === status) return toast.error("all ready done");
+
+    await mutateAsync({ id, status });
   };
+
+  if (isLoading) return <p>Loading..................</p>;
   return (
     <section className="container px-4 mx-auto pt-12">
       <div className="flex items-center gap-x-3">
@@ -97,7 +117,7 @@ const BidRequests = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 ">
-                  {bidreques.map((bid) => (
+                  {bids.map((bid) => (
                     <tr>
                       <td className="px-4 py-4 text-sm text-gray-500  whitespace-nowrap">
                         {bid.job_title}
@@ -155,9 +175,12 @@ const BidRequests = () => {
                           </button>
 
                           <button
-                          disabled={bid.status === "Complete"}
-                          onClick={()=>handleStatus(bid._id, bid.status, 'Rejected')}
-                          className="text-gray-500 transition-colors duration-200   hover:text-yellow-500 focus:outline-none">
+                            disabled={bid.status === "Complete"}
+                            onClick={() =>
+                              handleStatus(bid._id, bid.status, "Rejected")
+                            }
+                            className="text-gray-500 transition-colors duration-200   hover:text-yellow-500 focus:outline-none"
+                          >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"

@@ -6,9 +6,12 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import toast from "react-hot-toast";
+import useAuth from "../hooks/useAuth";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const JobDetails = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
+  const axiosSecure = useAxiosSecure();
   const [startDate, setStartDate] = useState(new Date());
   const navigate = useNavigate();
   const job = useLoaderData();
@@ -52,13 +55,14 @@ const JobDetails = () => {
     };
 
     try {
-      const { data } = await axios.post(`http://localhost:5000/bid`, bidData);
+      const { data } = await axiosSecure.post(`/bid`, bidData);
       if (data.acknowledged) {
         navigate("/");
         toast.success("bid a job");
+        e.target.reset();
       }
     } catch (error) {
-      console.log(error);
+      toast.error(error.response.data);
     }
   };
 
